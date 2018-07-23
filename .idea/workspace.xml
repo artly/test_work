@@ -3,9 +3,9 @@
   <component name="ChangeListManager">
     <list default="true" id="1c0d8f96-34f4-4045-89c9-6b568dc3d28c" name="Default" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Untitled.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/Untitled.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/basic_report.xlsx" beforeDir="false" afterPath="$PROJECT_DIR$/basic_report.xlsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/get_text_stats.py" beforeDir="false" afterPath="$PROJECT_DIR$/get_text_stats.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/p+n.fb2" beforeDir="false" afterPath="$PROJECT_DIR$/p+n.fb2" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/v+m.fb2" beforeDir="false" afterPath="$PROJECT_DIR$/v+m.fb2" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -19,12 +19,30 @@
       <file leaf-file-name="get_text_stats.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/get_text_stats.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="608">
-              <caret line="251" column="64" selection-start-line="251" selection-start-column="64" selection-end-line="251" selection-end-column="64" />
+            <state relative-caret-position="4200">
+              <caret line="280" selection-start-line="280" selection-end-line="280" />
               <folding>
                 <element signature="e#0#18#0" expanded="true" />
-                <marker date="1532320142000" expanded="true" signature="10403:10760" ph="..." />
+                <marker date="1532350267000" expanded="true" signature="14818:15145" ph="..." />
               </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="indexing.py" pinned="false" current-in-tab="false">
+        <entry file="file://$USER_HOME$/anaconda3/envs/yt_mentions/lib/python3.6/site-packages/pandas/core/indexing.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="257">
+              <caret line="542" selection-start-line="542" selection-end-line="542" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="generic.py" pinned="false" current-in-tab="false">
+        <entry file="file://$USER_HOME$/anaconda3/envs/yt_mentions/lib/python3.6/site-packages/pandas/core/generic.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="257">
+              <caret line="4371" selection-start-line="4371" selection-end-line="4371" />
             </state>
           </provider>
         </entry>
@@ -198,13 +216,27 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$USER_HOME$/anaconda3/envs/yt_mentions/lib/python3.6/site-packages/pandas/core/generic.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="257">
+          <caret line="4371" selection-start-line="4371" selection-end-line="4371" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/anaconda3/envs/yt_mentions/lib/python3.6/site-packages/pandas/core/indexing.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="257">
+          <caret line="542" selection-start-line="542" selection-end-line="542" />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/get_text_stats.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="608">
-          <caret line="251" column="64" selection-start-line="251" selection-start-column="64" selection-end-line="251" selection-end-column="64" />
+        <state relative-caret-position="4200">
+          <caret line="280" selection-start-line="280" selection-end-line="280" />
           <folding>
             <element signature="e#0#18#0" expanded="true" />
-            <marker date="1532320142000" expanded="true" signature="10403:10760" ph="..." />
+            <marker date="1532350267000" expanded="true" signature="14818:15145" ph="..." />
           </folding>
         </state>
       </provider>
