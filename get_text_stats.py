@@ -4,6 +4,7 @@ import pandas as pd
 import sys
 import re
 from xml.etree import ElementTree as ET
+import matplotlib.pyplot as plt
 
 #объявление классов
 class TextStats():
@@ -177,7 +178,7 @@ class TextStats():
 
         # отдельно статистика по предложениям
         self.sentences_clean = (self.raw_table
-                                .groupby(['sentence'])['comma', 'semicolon', 'exclamation', 'q_mark', 'ddd']
+                                .groupby(['sentence'])['comma', 'semicolon', 'exclamation', 'q_mark', 'ddd', 'dialog']
                                 .apply(np.sum)
                                 .merge(self.raw_table
                                        .groupby(['sentence']).agg({'word': 'count', 'length': 'mean'}),
@@ -188,6 +189,7 @@ class TextStats():
     def calc_basic_stats(self):
         self.basic_stats = {}
         self.basic_stats['words_total'] = self.words_clean.shape[0]
+        self.words_length = self.words_clean['length'].mean()
         self.basic_stats['words_rus'] = self.words_clean[(~(self.words_clean['is_digit'])
                                       & self.words_clean['is_russian'])].shape[0] / self.basic_stats['words_total']
         self.basic_stats['words_in_sentence'] = self.sentences_clean['word'].mean()
@@ -198,23 +200,82 @@ class TextStats():
                                       .agg('count')['sentence']
                                       .mean())
         self.basic_stats['words_per_chapter'] = self.words_clean.groupby('chapter_n').count()['word'].mean()
+
+        self.basic_stats['words_in_sentence_q95'] = self.sentences_clean['word'].quantile(0.95)
+        self.basic_stats['words_vocality'] = self.words_clean['vowels'].sum() / self.basic_stats['words_total']
+        self.basic_stats['words_digitality'] = (self.words_clean['is_digit'].astype(int).sum() /
+                                                self.basic_stats['words_total'])
+        self.basic_stats['words_war_n_peace ']= (self.words_clean['word'].str
+                                                 .contains(r'^войн|^мир.м?$')
+                                                 .astype(int).sum() / self.basic_stats['words_total'])
+
+        # хардкод - это плохо, конечно, но быстро
+        self.basic_stats['god'] = (self.words_clean['word'].isin([ 'бог', 'бога', 'богом', 'богу', 'боге', 'боже'])
+                                                  .astype(int).sum() / self.basic_stats['words_total'])
+
+        self.basic_stats['words_crime_n_punishment'] = (self.words_clean['word'].str
+                                                        .contains(r'^преступлени|^наказани')
+                                                        .astype(int).sum() / self.basic_stats['words_total'])
+
         self.basic_stats['chapters_total'] = self.words_clean['chapter_n'].drop_duplicates().shape[0]
         self.basic_stats['punctuation_per_sentence'] = ((self.sentences_clean['comma'] +
                                          self.sentences_clean['semicolon']).sum() 
                                          / self.basic_stats['sentences_total'])
         self.basic_stats['sentiment_per_sentence'] = ((self.sentences_clean['exclamation']
                                                       + self.sentences_clean['q_mark']
-                                                      + self.sentences_clean['ddd']).sum()
+                                                      + self.sentences_clean['ddd'])
+                                                      .apply(lambda x: 1 if x > 0 else 0).sum()
                                                       / self.basic_stats['sentences_total'])
         self.basic_stats['exclamations'] = ((self.sentences_clean['exclamation']).sum()
                                             / self.basic_stats['sentences_total'])
         self.basic_stats['q_marks'] = (self.sentences_clean['q_mark']).sum() / self.basic_stats['sentences_total']
         self.basic_stats['ddd'] = (self.sentences_clean['ddd']).sum() / self.basic_stats['sentences_total']
 
-    def calc_advanced_stats(self):
-        return
-#объявление процедур
+        sentences_dialog = self.sentences_clean[self.sentences_clean['dialog'] == 1]
+        self.basic_stats['sentences_dialog_perc'] = sentences_dialog.shape[0] / self.basic_stats['sentences_total']
+        self.basic_stats['sentences_dialog_sentiment'] = ((sentences_dialog['exclamation'] + sentences_dialog['q_mark']
+                                                           + sentences_dialog['ddd'])
+                                                          .apply(lambda x: 1 if x > 0 else 0).sum()
+                                                          / sentences_dialog.shape[0])
 
+
+
+    def calc_advanced_stats(self):
+        # поправляем наше представление об именах собственных на основании встречаемости
+        # конкретного слова с заглавной буквы
+        name_occurrence = (self.words_clean[(self.words_clean['is_russian']) & (self.words_clean['is_proper'])]
+                           .loc[:, 'word'].value_counts())
+        # почему 12? потому что 12 :)
+        self.frequent_names = name_occurrence[name_occurrence > 12]
+        self.words_clean.loc[self.words_clean[self.words_clean['word'].isin(self.frequent_names.index)].index,
+                             'is_proper'] = True
+
+        frequent_words = self.words_clean[(self.words_clean['is_russian']) &
+                                               (~self.words_clean['is_proper'])].loc[:, 'word'].value_counts()
+        self.unique_words = frequent_words.shape[0]
+
+        #убираем самые популярные и самые редкие словоформы
+        frequent_words = frequent_words[70:]
+        frequent_words = frequent_words[frequent_words > 1]
+        self.frequent = pd.DataFrame(data=np.array([frequent_words.index.tolist(), (frequent_words /
+                                self.words_clean[(self.words_clean['is_russian']) &
+                                (~self.words_clean['is_proper'])].shape[0])]).T, columns=['word', 'freq'])
+        self.more_frequent = self.frequent[self.frequent['word'].isin(frequent_words[frequent_words > 10].index.tolist())]
+
+        character_mentions = self.words_clean[['word']]
+        window = 20000
+        # опять хардкод, только для ПиН, чтобы показать идею
+        characters = {'Раскольников': ['раскольников', 'раскольникова', 'раскольникову', 'раскольниковым',
+                                       'раскольникове', 'родион', 'родиону', 'родионе'],
+                      'Соня': ['соня', 'соню', 'соне', 'соней', 'мармеладова', 'мармеладову',
+                               'мармеладовой', 'мармеладове', 'мармеладовы'],
+                      'Порфирий Петрович': ['порфирий', 'порфирию', 'профирии', 'порфирием', 'порфирия', 'порфирие'],
+                      'Разумихин': ['разумихин', 'разумихина', 'разумихину', 'разумихине', 'разумихиным'],
+                      'Свидригайлов': ['свидригайлов', 'свидригайлова', 'свидригайлове', 'свидригайловым']}
+        for name in characters:
+            character_mentions[name] = character_mentions['word'].isin(characters[name]).astype(int)
+        character_mentions.drop(columns='word', inplace=True)
+        self.mentions = character_mentions.rolling(window=window).sum()
 
 
 # тело скрипта
@@ -223,23 +284,22 @@ class TextStats():
 # file2: путь к файлу с текстом 2 в формате fb2
 if __name__ == "__main__":
     # читаем параметры
-    file1 = "p+n.fb2"
-    file2 = "v+m.fb2"
-    # file1 = None
-    # file2 = None
-    # try:
-    #     file1 = sys.argv[1]
-    # except IndexError:
-    #     print("Укажите 2 файла для сравнения (сейчас указано 0)")
-    #
-    # if file1:
-    #     try:
-    #         file2 = sys.argv[2]
-    #     except IndexError:
-    #         print("Укажите 2 файла для сравнения (сейчас указан 1)")
-    #
-    # if not(file1 and file2):
-    #     sys.exit(0)
+
+    file1 = None
+    file2 = None
+    try:
+        file1 = sys.argv[1]
+    except IndexError:
+        print("Укажите 2 файла для сравнения (сейчас указано 0)")
+
+    if file1:
+        try:
+            file2 = sys.argv[2]
+        except IndexError:
+            print("Укажите 2 файла для сравнения (сейчас указан 1)")
+
+    if not(file1 and file2):
+        sys.exit(0)
     comp1 = TextStats(file1)
     comp2 = TextStats(file2)
 
@@ -253,5 +313,36 @@ if __name__ == "__main__":
                        for metric in comp1.basic_stats.keys()},
                  index=[comp1.name, comp2.name],
                  columns=comp1.basic_stats.keys()).to_excel('basic_report.xlsx')
+
+    comp1.calc_advanced_stats()
+    comp2.calc_advanced_stats()
+
+    print('Уникальных словоформ на единицу текста в {}: {}'
+          .format(comp1.name, comp1.unique_words / comp1.basic_stats['words_total']))
+
+    print('Уникальных словоформ на единицу текста в {}: {}'
+          .format(comp2.name, comp2.unique_words / comp2.basic_stats['words_total']))
+
+
+    common_words = comp1.frequent.merge(comp2.frequent, how='inner', left_on='word', right_on='word')
+    different_words = len(set(comp1.frequent['word'].values.tolist() + comp2.frequent['word'].values.tolist())) - common_words.shape[0]
+    print('общих словоформ: {}'.format(common_words.shape[0]))
+    print('различных словоформ: {}'.format(different_words))
+
+    more_common_words=comp1.more_frequent.merge(comp2.more_frequent, how='inner', left_on='word', right_on='word')
+    more_common_words['comparative'] = more_common_words['freq_x'].astype(float) / more_common_words['freq_y'].astype(float)
+
+    # сбрасываю в excel, чтобы быстро построить word cloud, в питоне это сложнее и дольше по моему опыту
+    more_common_words.sort_values('comparative', ascending=False).to_excel('word_usage.xlsx')
+
+    # Рисую график ПиН
+    plt.ylim(0, 250)
+    plt.xlim(0, 180000)
+    for character in comp1.mentions.columns:
+        plt.plot(comp1.mentions[character], label = character)
+    plt.legend()
+    plt.show()
+
+
 
 
