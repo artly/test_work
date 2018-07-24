@@ -91,6 +91,10 @@ class TextStats():
 
     def __init__(self, path):
 
+        self.words_clean = pd.DataFrame()
+        self.sentences_clean = pd.DataFrame()
+        self.tf_idf = pd.DataFrame()
+
         self.name = path.replace('.fb2', '')
 
         # открываем файл, парсим xml
@@ -187,6 +191,12 @@ class TextStats():
 
     # Это не очень красивый код, надо было бы сделать отдельный класс для статистик...
     def calc_basic_stats(self):
+
+        if self.words_clean.empty:
+            print('Use clean_data metod first')
+            return
+
+
         self.basic_stats = {}
         self.basic_stats['words_total'] = self.words_clean.shape[0]
         self.words_length = self.words_clean['length'].mean()
@@ -241,6 +251,11 @@ class TextStats():
 
 
     def calc_advanced_stats(self):
+
+        if self.words_clean.empty:
+            print('Use clean_data metod first')
+            return
+
         # поправляем наше представление об именах собственных на основании встречаемости
         # конкретного слова с заглавной буквы
         name_occurrence = (self.words_clean[(self.words_clean['is_russian']) & (self.words_clean['is_proper'])]
@@ -276,6 +291,54 @@ class TextStats():
             character_mentions[name] = character_mentions['word'].isin(characters[name]).astype(int)
         character_mentions.drop(columns='word', inplace=True)
         self.mentions = character_mentions.rolling(window=window).sum()
+
+    # расчёт tf*idf по-простому. частотность не нормируем длиной документа
+    def tf_idf(self):
+
+        if self.words_clean.empty:
+            print('Use clean_data metod first')
+            return
+
+        tf_chapter = (self.words_clean
+                      .groupby(['chapter_n', 'word'])[['sentence']].agg('count')
+                      .rename(columns={'sentence': 'n'})
+                      .reset_index(level=1))
+        tf_chapter['total'] = self.words_clean.groupby('chapter_n')['word'].agg('count')
+        tf_chapter['freq'] = tf_chapter['n'] / tf_chapter['total']
+
+
+        idf_chapter = (self.words_clean
+                       .groupby(['word', 'chapter_n'])[['sentence']].apply(lambda x: 1)
+                       .rename(columns={'sentence': 'n'})
+                       .reset_index()
+                       .groupby('word').agg('count')
+                       .drop(columns=0)
+                       .rename(columns={'chapter_n': 'n_docs'}))
+
+        idf_chapter['idf'] = np.log(self.words_clean['chapter_n'].drop_duplicates().shape[0] / idf_chapter['n_docs'])
+        self.tf_idf = tf_chapter.merge(idf_chapter, how='inner', left_on='word', right_index=True)
+        self.tf_idf['tf_idf'] = self.tf_idf['freq'] * self.tf_idf['idf']
+        self.tf_idf.reset_index(inplace=True)
+        self.tf_idf = self.tf_idf.groupby(['chapter_n', 'tf_idf', 'word'])[['idf']].agg('count').reset_index()
+
+    # возвращает DF с первыми top_tf_idf словоформами согласно рейтингу tf*idf
+    def get_top_tf_idf(self, top_tf_idf=1):
+        if self.tf_idf.empty:
+            print('Use tf_idf metod first')
+            return None
+
+        self.tf_idf['chapter_change'] = (self.tf_idf['chapter_n'].shift(-1) != self.tf_idf['chapter_n']).astype(int)
+
+        for i in range(top_tf_idf - 1):
+            self.tf_idf['chapter_change'] = ((self.tf_idf['chapter_change']
+                                         + self.tf_idf['chapter_change'].shift(-1).fillna(0)) != 0).astype(int)
+        return (self.tf_idf[self.tf_idf['chapter_change'] != 0]
+                .sort_values(['chapter_n', 'tf_idf'], ascending=[True, False])
+                .drop(columns=['idf', 'chapter_change']))
+
+    # убираем слова-связки через tf*idf
+    def clean_stopwords_tf_idf(self):
+        return
 
 
 # тело скрипта
@@ -343,6 +406,11 @@ if __name__ == "__main__":
     plt.legend()
     plt.show()
 
+    comp1.tf_idf()
+    comp2.tf_idf()
+
+    comp1.get_top_tf_idf(1).to_excel(comp1.name + '.xlsx')
+    comp2.get_top_tf_idf(1).to_excel(comp2.name + '.xlsx')
 
 
 
