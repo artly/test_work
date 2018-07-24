@@ -1,6 +1,8 @@
 # test_work
 text stats
 
+Версия для проверки: последняя от 23 июля
+
 Как запустить: 
 > python3 get_text_stats.py "p+n.fb2" "v+m.fb2"
 
